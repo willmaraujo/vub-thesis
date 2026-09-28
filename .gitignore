@@ -1,0 +1,10 @@
+.ipynb_checkpoints/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+data/gitskills/*.db
+data/gitskills/*.zip
+/01_fundamentals_emse_msr.pdf
+/2608.10906.pdf
+/Thesis Proposal.pdf
