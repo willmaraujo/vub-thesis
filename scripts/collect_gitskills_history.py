@@ -13,6 +13,16 @@ def fetch(url):
     return subprocess.check_output(["curl", "-fsSL", "--retry", "2", url])
 
 
+def get_file_stats(repository, sha, path):
+    url = f"/repos/{repository}/commits/{sha}?per_page=100"
+    pages = json.loads(subprocess.check_output(["gh", "api", "--paginate", "--slurp", url]))
+    for page in pages:
+        for file in page["files"]:
+            if file["filename"] == path or file.get("previous_filename") == path:
+                return file["additions"], file["deletions"]
+    raise ValueError(f"File not found in commit {sha}: {repository}/{path}")
+
+
 connection = sqlite3.connect(database)
 skills = connection.execute("""
     SELECT repo_full_name, name, path, last_commit_at, commit_count, content
@@ -31,6 +41,7 @@ for repository, name, path, last_date, expected_count, current_text in skills:
 
     for commit in reversed(commits):
         sha = commit["sha"]
+        additions, deletions = get_file_stats(repository, sha, path)
         file_url = f"https://raw.githubusercontent.com/{repository}/{sha}/{quote(path)}"
         try:
             content = fetch(file_url).decode("utf-8")
@@ -44,6 +55,8 @@ for repository, name, path, last_date, expected_count, current_text in skills:
             "commit_sha": sha,
             "committed_at": commit["commit"]["committer"]["date"],
             "message": commit["commit"]["message"].splitlines()[0],
+            "additions": additions,
+            "deletions": deletions,
             "content": content,
         })
 
